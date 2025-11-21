@@ -153,6 +153,67 @@
       font-size: 10px;
       color: #6b7280;
     }
+
+    /* Weight tracker styles */
+    .weight-section {
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .weight-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: flex-end;
+    }
+    .weight-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1 1 120px;
+    }
+    .weight-input-group label {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    .weight-input-group input {
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .weight-list {
+      font-size: 10px;
+      color: #e5e7eb;
+      border-radius: 12px;
+      border: 1px solid #111827;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 8px;
+    }
+    .weight-list-header,
+    .weight-list-row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr 0.9fr;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .weight-list-header {
+      font-weight: 600;
+      color: #9ca3af;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
+    }
+    .weight-list-summary {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px solid #1f2937;
+      color: #9ca3af;
+    }
   </style>
 </head>
 <body>
@@ -160,10 +221,11 @@
     <div class="header">
       <div>
         <div class="title">Shred + Run + Abs Log</div>
-        <div class="subtitle">Track each day’s workout by date. Data saves on this device.</div>
+        <div class="subtitle">Tap a tab, change the date, log your work. Everything saves on this device.</div>
       </div>
     </div>
 
+    <!-- TABS: days + weight -->
     <div class="chip-row" id="templateChips">
       <div class="chip active" data-template="Monday">Mon – Push + Abs</div>
       <div class="chip" data-template="Tuesday">Tue – Pull + Abs</div>
@@ -172,35 +234,64 @@
       <div class="chip" data-template="Friday">Fri – Sprints + Abs</div>
       <div class="chip" data-template="Saturday">Sat – Active Recovery</div>
       <div class="chip" data-template="Sunday">Sun – Rest</div>
+      <div class="chip" data-template="Weight">Weight Log</div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title" id="currentTemplateTitle">Mon – Push + Abs</div>
-        <div class="date-input">
-          <input type="date" id="datePicker" />
+    <!-- WORKOUT VIEW -->
+    <div id="workoutContainer">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" id="currentTemplateTitle">Mon – Push + Abs</div>
+          <div class="date-input">
+            <input type="date" id="datePicker" />
+          </div>
+        </div>
+
+        <div id="exercisesContainer">
+          <!-- rows inserted by JS -->
+        </div>
+
+        <div class="card-footer">
+          <button class="btn btn-outline btn-small" id="addExerciseBtn">+ Add exercise</button>
+          <div>
+            <button class="btn btn-outline btn-small" id="clearBtn">Clear day</button>
+            <button class="btn btn-primary btn-small" id="saveBtn">Save</button>
+          </div>
         </div>
       </div>
 
-      <div id="exercisesContainer">
-        <!-- rows inserted by JS -->
-      </div>
-
-      <div class="card-footer">
-        <button class="btn btn-outline btn-small" id="addExerciseBtn">+ Add exercise</button>
-        <div>
-          <button class="btn btn-outline btn-small" id="clearBtn">Clear day</button>
-          <button class="btn btn-primary btn-small" id="saveBtn">Save</button>
+      <div class="card" id="summarySection">
+        <div class="card-header">
+          <div class="card-title">Today’s Summary</div>
+        </div>
+        <div class="summary-text" id="summaryText">
+          No data yet. Log this day’s workout to see sets and exercises.
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Today’s Summary</div>
-      </div>
-      <div class="summary-text" id="summaryText">
-        No data yet. Log this day’s workout to see sets and exercises.
+    <!-- WEIGHT VIEW -->
+    <div id="weightContainer" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Weekly Weight Log</div>
+        </div>
+        <div class="weight-section">
+          <div class="weight-row">
+            <div class="weight-input-group">
+              <label for="weightDate">Weigh-in date</label>
+              <input type="date" id="weightDate" />
+            </div>
+            <div class="weight-input-group">
+              <label for="weightValue">Body weight (lb)</label>
+              <input type="number" id="weightValue" placeholder="182" step="0.1" />
+            </div>
+            <button class="btn btn-primary btn-small" id="saveWeightBtn">Save weight</button>
+          </div>
+          <div class="weight-list" id="weightList">
+            No weigh-ins yet. Log once per week.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -210,7 +301,8 @@
   </div>
 
   <script>
-    // Display titles for each "day" tab
+    // === WORKOUT DAY LOGIC ===
+
     const templateTitles = {
       Monday: "Mon – Push + Abs",
       Tuesday: "Tue – Pull + Abs",
@@ -221,7 +313,6 @@
       Sunday: "Sun – Rest"
     };
 
-    // Your exact weekly program
     const defaultTemplates = {
       Monday: [
         { name: "Dumbbell Chest Press Flat", sets: "3", reps: "8–12", weight: "" },
@@ -291,6 +382,8 @@
     const saveBtn = document.getElementById("saveBtn");
     const clearBtn = document.getElementById("clearBtn");
     const summaryText = document.getElementById("summaryText");
+    const workoutContainer = document.getElementById("workoutContainer");
+    const weightContainer = document.getElementById("weightContainer");
 
     let currentTemplate = "Monday";
 
@@ -401,9 +494,23 @@
       const chip = e.target.closest(".chip");
       if (!chip) return;
       const template = chip.getAttribute("data-template");
-      currentTemplate = template;
+
+      // update active chip
       document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
       chip.classList.add("active");
+
+      if (template === "Weight") {
+        // show weight view
+        workoutContainer.style.display = "none";
+        weightContainer.style.display = "block";
+        return;
+      }
+
+      // show workout view
+      weightContainer.style.display = "none";
+      workoutContainer.style.display = "block";
+
+      currentTemplate = template;
       currentTemplateTitle.textContent = templateTitles[template];
       loadFromStorage();
     });
@@ -436,14 +543,94 @@
       updateSummary(defaults);
     });
 
-    // Auto-save when leaving any input
+    // Auto-save when leaving any workout input
     exercisesContainer.addEventListener("focusout", () => {
       saveToStorage();
+    });
+
+    // === WEIGHT TRACKER LOGIC ===
+    const weightDate = document.getElementById("weightDate");
+    const weightValue = document.getElementById("weightValue");
+    const saveWeightBtn = document.getElementById("saveWeightBtn");
+    const weightList = document.getElementById("weightList");
+
+    function getWeightData() {
+      const raw = localStorage.getItem("bodyweight_log");
+      if (!raw) return [];
+      try {
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveWeightData(data) {
+      localStorage.setItem("bodyweight_log", JSON.stringify(data));
+    }
+
+    function renderWeightList() {
+      const data = getWeightData().slice().sort((a, b) => a.date.localeCompare(b.date));
+      if (!data.length) {
+        weightList.textContent = "No weigh-ins yet. Log once per week.";
+        return;
+      }
+
+      let html = '<div class="weight-list-header"><span>Date</span><span>Weight (lb)</span><span>Change</span></div>';
+
+      const first = data[0];
+      data.forEach((entry, idx) => {
+        let changeText = "—";
+        if (idx > 0) {
+          const diff = entry.weight - data[idx - 1].weight;
+          const sign = diff > 0 ? "+" : "";
+          changeText = `${sign}${diff.toFixed(1)}`;
+        }
+        html += `
+          <div class="weight-list-row">
+            <span>${entry.date}</span>
+            <span>${entry.weight.toFixed(1)}</span>
+            <span>${changeText}</span>
+          </div>
+        `;
+      });
+
+      const last = data[data.length - 1];
+      const netDiff = last.weight - first.weight;
+      const signNet = netDiff > 0 ? "+" : "";
+      html += `<div class="weight-list-summary">Net change: ${signNet}${netDiff.toFixed(1)} lb from ${first.date} to ${last.date}.</div>`;
+
+      weightList.innerHTML = html;
+    }
+
+    function initWeightSection() {
+      weightDate.value = getToday();
+      renderWeightList();
+    }
+
+    saveWeightBtn.addEventListener("click", () => {
+      const date = weightDate.value || getToday();
+      const val = parseFloat(weightValue.value);
+      if (isNaN(val)) {
+        alert("Enter a valid weight in pounds.");
+        return;
+      }
+      const data = getWeightData();
+      const idx = data.findIndex(e => e.date === date);
+      if (idx >= 0) {
+        data[idx].weight = val;
+      } else {
+        data.push({ date, weight: val });
+      }
+      saveWeightData(data);
+      renderWeightList();
+      weightValue.value = "";
     });
 
     // Init on load
     setDefaultDate();
     loadFromStorage();
+    initWeightSection();
   </script>
 </body>
-</html>
+</html>x
